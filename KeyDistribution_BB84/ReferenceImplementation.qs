@@ -16,6 +16,7 @@ namespace Quantum.Kata.KeyDistribution {
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Math;
+    open Microsoft.Quantum.Random;
     
     
     //////////////////////////////////////////////////////////////////
@@ -45,7 +46,7 @@ namespace Quantum.Kata.KeyDistribution {
         mutable array = new Bool[N];
 
         for (i in 0 .. N - 1) {
-            set array w/= i <- RandomInt(2) == 1;
+            set array w/= i <- DrawRandomBool(0.5);
         }
 
         return array;
@@ -54,7 +55,7 @@ namespace Quantum.Kata.KeyDistribution {
 
     // Task 2.2. Prepare Alice's qubits
     operation PrepareAlicesQubits_Reference (qs : Qubit[], bases : Bool[], bits : Bool[]) : Unit is Adj {
-        for (i in 0..Length(qs) - 1) {
+        for (i in 0 .. Length(qs) - 1) {
             if (bits[i]) {
                 X(qs[i]);
             }
@@ -67,7 +68,7 @@ namespace Quantum.Kata.KeyDistribution {
 
     // Task 2.3. Measure Bob's qubits
     operation MeasureBobsQubits_Reference (qs : Qubit[], bases : Bool[]) : Bool[] {
-        for (i in 0..Length(qs) - 1) {
+        for (i in 0 .. Length(qs) - 1) {
             if (bases[i]) {
                 H(qs[i]);
             }
@@ -81,7 +82,7 @@ namespace Quantum.Kata.KeyDistribution {
         // If Alice and Bob used the same basis, they will have the same value of the bit.
         // The shared key consists of those bits.
         mutable key = new Bool[0];
-        for ((a, b, bit) in Zip3(basesAlice, basesBob, measurementsBob)) {
+        for ((a, b, bit) in Zipped3(basesAlice, basesBob, measurementsBob)) {
             if (a == b) {
                 set key += [bit];
             }
@@ -119,7 +120,7 @@ namespace Quantum.Kata.KeyDistribution {
             // 3. Bob chooses random basis to measure in
             let basesBob = RandomArray_Reference(Length(qs));
 
-            // 4. Bob measures Alice's qubits'
+            // 4. Bob measures Alice's qubits
             let bitsBob = MeasureBobsQubits_Reference(qs, basesBob);
 
             // 5. Generate shared key
@@ -130,8 +131,6 @@ namespace Quantum.Kata.KeyDistribution {
             if (CheckKeysMatch_Reference(keyAlice, keyBob, threshold)) {
                 Message($"Successfully generated keys {keyAlice}/{keyBob}");
             }
-
-            ResetAll(qs);
         }
     }
 
@@ -159,8 +158,8 @@ namespace Quantum.Kata.KeyDistribution {
             PrepareAlicesQubits_Reference(qs, basesAlice, bitsAlice);
         
             // Eve eavesdrops on all qubits, guessing the basis at random
-            for (i in 0 .. Length(qs) - 1) {
-                let n = Eavesdrop_Reference(qs[i], RandomInt(2) == 1);
+            for (q in qs) {
+                let n = Eavesdrop_Reference(q, DrawRandomBool(0.5));
             }
 
             // 3. Bob chooses random basis to measure in
@@ -179,8 +178,6 @@ namespace Quantum.Kata.KeyDistribution {
             } else {
                 Message($"Caught an eavesdropper, discarding the keys {keyAlice}/{keyBob}");
             }
-
-            ResetAll(qs);
         }
     }
 }
